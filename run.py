@@ -9,7 +9,7 @@ app = Flask(__name__)
 model = joblib.load("multioutput_weather_model.joblib")
 
 # Extract city encoder to validate input cities
-city_encoder = model.named_steps['preprocessor'].named_transformers_['cat']
+city_encoder = model.estimator.named_steps['preprocessor'].named_transformers_['cat']
 expected_cities = city_encoder.categories_[0].tolist()
 
 @app.route("/")
