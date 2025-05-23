@@ -1,1 +1,20 @@
 
+[
+  "relative_humidity",
+  "precipitation",
+  "rain",
+  "wind_speed",
+  "wind_direction",
+  "hour",
+  "month",
+  "city_Ahmedabad",
+  "city_Bangalore",
+  "city_Chennai",
+  "city_Dehradun",
+  "city_Delhi",
+  "city_Hyderabad",
+  "city_Jaipur",
+  "city_Kolkata",
+  "city_Lucknow",
+  "city_Mumbai"
+]
