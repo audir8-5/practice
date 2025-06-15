@@ -18,7 +18,7 @@ expected_cities = [f.replace("city_", "") for f in feature_order if f.startswith
 def home():
     return render_template("page.html")
 
-@app.route("/api/predict", methods=["POST"])
+@app.route("/predict", methods=["POST"])
 def predict():
     data = request.get_json()
     try:
