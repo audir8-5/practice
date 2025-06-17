@@ -1,35 +1,40 @@
 from flask import Flask, request, jsonify, render_template
-import numpy as np
 import pandas as pd
+import numpy as np
 import joblib
 from datetime import datetime
-
-# Load the trained pipeline model
-model = joblib.load("final_weather_forecast_model_cpu.joblib")
-
-# Bias correction (for /predict5)
-bias = np.array([
-    1.5, 1.5, 1.5, 1.9, 1.4,        # temperature
-    -20, -20, -20, -15, -13,        # humidity
-    -0.8, -0.9, -1.0, -0.4, -0.5    # wind speed
-])
+import os
 
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return render_template('page.html')
+# Load CPU-compatible trained pipeline model
+MODEL_PATH = "final_weather_forecast_model_cpu.joblib"
+model = joblib.load(MODEL_PATH)
 
+# Bias correction: [temp x5, humidity x5, wind x5]
+bias = np.array([
+    1.5, 1.5, 1.5, 1.9, 1.4,        # temperature
+    -20, -20, -20, -15, -13,        # humidity
+    -0.8, -0.9, -1.0, -0.4, -0.5    # wind
+])
 
-def preprocess_json(data):
-    """Preprocess OpenWeatherMap JSON into DataFrame for prediction"""
-    ts = data.get("dt")
-    timezone = data.get("timezone", 0)
-    dt = datetime.utcfromtimestamp(ts + timezone)
-    hour = dt.hour
-    month = dt.month
+# Expected cities (must match model's training one-hot columns)
+expected_cities = [
+    'Ahmedabad', 'Bengaluru', 'Chennai', 'Dehradun', 'Delhi',
+    'Hyderabad', 'Jaipur', 'Kolkata', 'Mumbai', 'Pune'
+]
 
+# ------------------- Preprocessing Function -------------------
+def preprocess_input(data):
     try:
+        ts = data["dt"]
+        tz = data.get("timezone", 0)
+        dt = datetime.utcfromtimestamp(ts + tz)
+        hour = dt.hour
+        month = dt.month
+        city = data.get("name", "Unknown")
+
+        # Extract features
         features = {
             "temperature": data["main"]["temp"],
             "relative_humidity": data["main"]["humidity"],
@@ -39,66 +44,70 @@ def preprocess_json(data):
             "rain": 0.0,
             "wind_speed": data["wind"]["speed"],
             "wind_direction": data["wind"]["deg"],
-            "city": data["name"],
             "hour": hour,
             "month": month
         }
+
         df = pd.DataFrame([features])
-        return df
-    except KeyError as e:
-        return f"Missing key: {e}"
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    try:
-        data = request.get_json()
-        df = preprocess_json(data)
+        # Add one-hot encoded city columns
+        for c in expected_cities:
+            df[f'city_{c}'] = 1 if city == c else 0
 
-        if isinstance(df, str):
-            return jsonify({'error': df}), 400
-
-        prediction = model.predict(df)[0]  # [temp, humidity, wind]
-        result = {
-            "Temperature (°C)": round(prediction[0], 2),
-            "Humidity (%)": round(prediction[1], 2),
-            "Wind Speed (m/s)": round(prediction[2], 2)
-        }
-        return jsonify(result)
+        return df, city
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise ValueError(f"Preprocessing failed: {e}")
 
+# ------------------- Routes -------------------
 
-@app.route('/predict5', methods=['POST'])
-def predict5():
+@app.route('/')
+def home():
+    return render_template('page.html')
+
+@app.route('/predict', methods=['POST'])
+def predict_current():
     try:
         data = request.get_json()
-        df = preprocess_json(data)
+        df, city = preprocess_input(data)
+        preds = model.predict(df)[0][:3]  # Only first hour
+        preds = np.round(preds, 2)
+        return jsonify({
+            "city": city,
+            "hour": "current",
+            "temperature": float(preds[0]),
+            "humidity": float(preds[1]),
+            "wind_speed": float(preds[2])
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
-        if isinstance(df, str):
-            return jsonify({'error': df}), 400
-
+@app.route('/predict5', methods=['POST'])
+def predict_5hour():
+    try:
+        data = request.get_json()
+        df, city = preprocess_input(data)
         raw_pred = model.predict(df)[0]
         corrected = raw_pred + bias
         reshaped = corrected.reshape(3, 5).T
 
-        forecast = []
-        for i, hour in enumerate(reshaped):
-            forecast.append({
-                "hour": f"+{i+1}",
-                "Temperature (°C)": round(hour[0], 2),
-                "Humidity (%)": round(hour[1], 2),
-                "Wind Speed (m/s)": round(hour[2], 2)
+        results = []
+        for i, row in enumerate(reshaped):
+            results.append({
+                "hour": f"Hour +{i+1}",
+                "temperature": round(row[0], 2),
+                "humidity": round(row[1], 2),
+                "wind_speed": round(row[2], 2)
             })
 
         return jsonify({
-            "city": data["name"],
-            "forecast": forecast
+            "city": city,
+            "forecast": results
         })
-
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 400
 
-
+# ------------------- Run App -------------------
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
