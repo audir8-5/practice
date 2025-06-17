@@ -8,7 +8,7 @@ import json
 app = Flask(__name__)
 
 # Load model pipeline
-model_pipeline = joblib.load("final_weather_forecast_model.joblib")  # Adjust path if needed
+model_pipeline = joblib.load("weather_5hour.joblib")  # Adjust path if needed
 
 # Bias (customized for Mumbai, update as needed)
 bias = np.array([
