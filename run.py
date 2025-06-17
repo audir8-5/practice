@@ -1,95 +1,86 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 import joblib
 import pandas as pd
 from datetime import datetime
-import traceback
 
 app = Flask(__name__)
 
-# Load model (ensure it's CPU-compatible, no GPU dependencies)
-model = joblib.load("final_weather_forecast_model_cpu.joblib")
+# Load model and feature columns
+model_path = "ridge_weather_model.joblib"
+loaded = joblib.load(model_path)
 
-# Preprocessing function
-def preprocess_input(data):
-    try:
-        # Fallback if timezone is missing
-        try:
-            ts = data["dt"] + data.get("timezone", 0)
-            dt = datetime.utcfromtimestamp(ts)
-        except Exception:
-            dt = datetime.utcnow()
+if isinstance(loaded, tuple):
+    pipeline, feature_columns = loaded
+else:
+    pipeline = loaded
+    # Default expected columns
+    feature_columns = [
+        'temperature', 'relative_humidity', 'dew_point', 'apparent_temperature',
+        'precipitation', 'rain', 'wind_speed', 'wind_direction',
+        'city', 'hour', 'month'
+    ]
 
-        features = {
-            "temperature": data["main"]["temp"],
-            "relative_humidity": data["main"]["humidity"],
-            "dew_point": data["main"].get("dew_point", data["main"]["temp"] - ((100 - data["main"]["humidity"]) / 5)),
-            "apparent_temperature": data["main"].get("feels_like", data["main"]["temp"]),
-            "precipitation": data.get("rain", {}).get("1h", 0),
-            "rain": 1 if "rain" in data else 0,
-            "wind_speed": data["wind"]["speed"],
-            "wind_direction": data["wind"]["deg"],
-            "city": data["name"],
-            "hour": dt.hour,
-            "month": dt.month
-        }
-
-        return pd.DataFrame([features])
-    except Exception as e:
-        raise ValueError(f"Error in preprocessing: {e}")
-
-@app.route("/")
+@app.route('/')
 def home():
-    return render_template("page.html")
+    return "✅ Weather Prediction API is running!"
 
-@app.route("/predict", methods=["POST"])
+@app.route('/predict', methods=['POST'])
 def predict():
     try:
-        input_data = request.get_json()
-        X_input = preprocess_input(input_data)
-        prediction = model.predict(X_input)[0][:3]  # temp, humidity, wind speed
-        return jsonify({
-            "temperature": round(prediction[0], 2),
-            "humidity": round(prediction[1], 2),
-            "wind_speed": round(prediction[2], 2)
-        })
+        data = request.get_json()
+
+        # --- Extract and process OpenWeatherMap input ---
+        temp = data["main"]["temp"]
+        humidity = data["main"]["humidity"]
+        dew_point = temp - ((100 - humidity) / 5)
+        apparent_temp = data["main"]["feels_like"]
+        precipitation = 0.0
+        rain = 0.0
+        wind_speed = data["wind"]["speed"]
+        wind_direction = data["wind"]["deg"]
+        timestamp = data["dt"]
+        timezone_offset = data.get("timezone", 0)
+        city = data["name"]
+
+        dt_obj = datetime.utcfromtimestamp(timestamp + timezone_offset)
+        hour = dt_obj.hour
+        month = dt_obj.month
+
+        # Build DataFrame
+        input_dict = {
+            "temperature": temp,
+            "relative_humidity": humidity,
+            "dew_point": dew_point,
+            "apparent_temperature": apparent_temp,
+            "precipitation": precipitation,
+            "rain": rain,
+            "wind_speed": wind_speed,
+            "wind_direction": wind_direction,
+            "city": city,
+            "hour": hour,
+            "month": month
+        }
+
+        input_df = pd.DataFrame([input_dict])
+
+        # Align columns
+        input_df = input_df[feature_columns]
+
+        # Prediction
+        y_pred = pipeline.predict(input_df)[0]
+
+        result = {
+            "predicted_temperature": round(y_pred[0], 2),
+            "predicted_relative_humidity": round(y_pred[1], 2),
+            "predicted_wind_speed": round(y_pred[2], 2)
+        }
+
+        return jsonify(result)
+    
+    except KeyError as e:
+        return jsonify({"error": f"Missing key: {str(e)}"}), 400
     except Exception as e:
-        return jsonify({
-            "error": str(e),
-            "trace": traceback.format_exc()
-        })
-
-@app.route("/predict5", methods=["POST"])
-def predict5():
-    try:
-        input_data = request.get_json()
-        base_input = preprocess_input(input_data)
-
-        predictions = []
-        current_input = base_input.copy()
-
-        for hour in range(5):
-            y_pred = model.predict(current_input)[0]
-            predictions.append({
-                "hour": hour + 1,
-                "temperature": round(y_pred[0], 2),
-                "humidity": round(y_pred[1], 2),
-                "wind_speed": round(y_pred[2], 2)
-            })
-            # Autoregressive update
-            current_input["temperature"] = y_pred[0]
-            current_input["relative_humidity"] = y_pred[1]
-            current_input["wind_speed"] = y_pred[2]
-
-        return jsonify({
-            "city": input_data["name"],
-            "forecast": predictions
-        })
-
-    except Exception as e:
-        return jsonify({
-            "error": str(e),
-            "trace": traceback.format_exc()
-        })
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
