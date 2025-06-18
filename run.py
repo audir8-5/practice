@@ -3,6 +3,12 @@ import joblib
 import pandas as pd
 from datetime import datetime, timedelta
 import numpy as np
+from flask_cors import CORS
+
+app = Flask(__name__, template_folder='templates')  # ✅ single instance
+CORS(app)  # ✅ now CORS is actually applied
+
+
 
 app = Flask(__name__, template_folder='templates')
 
