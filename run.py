@@ -1,16 +1,15 @@
 from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 import joblib
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 import numpy as np
-from flask_cors import CORS
-
-app = Flask(__name__, template_folder='templates')  # ✅ single instance
-CORS(app)  # ✅ now CORS is actually applied
-
-
 
 app = Flask(__name__, template_folder='templates')
+
+# ✅ Set CORS AFTER app init
+CORS(app, origins="*", allow_headers="*", methods=["GET", "POST", "OPTIONS"])
+
 
 # Load model (pipeline, feature_columns tuple)
 model_path = "ridge_weather_model.joblib"
