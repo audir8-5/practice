@@ -7,8 +7,9 @@ import numpy as np
 
 app = Flask(__name__, template_folder='templates')
 
-# ✅ Set CORS AFTER app init
-CORS(app, origins="*", allow_headers="*", methods=["GET", "POST", "OPTIONS"])
+# ✅ Correct and production-safe CORS config
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
 
 
 # Load model (pipeline, feature_columns tuple)
