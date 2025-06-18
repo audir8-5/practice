@@ -180,49 +180,67 @@
   </div>
 
   <script>
-    async function fetchPrediction() {
-      const city = document.getElementById("city").value;
-      const resultDiv = document.getElementById("result");
-      const cityName = document.getElementById("city-name");
-      const weatherStats = document.getElementById("weather-stats");
-      
-      resultDiv.style.display = 'block';
-      cityName.innerHTML = '';
-      weatherStats.innerHTML = 'Fetching prediction...';
+  async function fetchPrediction() {
+    const city = document.getElementById("city").value;
+    const resultDiv = document.getElementById("result");
+    const cityName = document.getElementById("city-name");
+    const weatherStats = document.getElementById("weather-stats");
+
+    const openWeatherApiKey = "7d78f12aba07e1ab5bd1fe710eb0f55d";  // your API key
+    const flaskApiUrl = "https://weather-vision.onrender.com";  // replace with your real Flask Render URL
+
+    resultDiv.style.display = 'block';
+    cityName.innerHTML = '';
+    weatherStats.innerHTML = 'Fetching prediction...';
+
+    try {
+      // Step 1: Fetch live weather data from OpenWeatherMap
+      const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${openWeatherApiKey}&units=metric`);
+      if (!weatherRes.ok) throw new Error("OpenWeatherMap API error");
+
+      const weatherData = await weatherRes.json();
+
+      // Step 2: Send this raw data to your Flask backend for prediction
+      const response = await fetch(flaskApiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(weatherData)
+      });
+
+      const text = await response.text(); // helpful for debugging
+      let data;
 
       try {
-        const response = await fetch("https://eo10o79br31eh3i.m.pipedream.net", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ city: city })
-        });
-
-        if (!response.ok) throw new Error('API response error');
-        const data = await response.json();
-
-        if (data.error) {
-          weatherStats.innerHTML = `<div class="error">⚠️ ${data.error}</div>`;
-        } else {
-          cityName.innerHTML = `${city} ⛅`;
-          weatherStats.innerHTML = `
-            <div class="weather-item">
-              🌡️ <span>${data.predicted_temperature} °C</span>
-            </div>
-            <div class="weather-item">
-              💧 <span>${data.predicted_relative_humidity}%</span>
-            </div>
-            <div class="weather-item">
-              🌬️ <span>${data.predicted_wind_speed} m/s</span>
-            </div>
-            <div class="weather-item">
-              🌤️ <span>${data.weather_condition || 'Partly Cloudy'}</span>
-            </div>
-          `;
-        }
+        data = JSON.parse(text);
       } catch (err) {
-        weatherStats.innerHTML = `<div class="error">⚠️ Error fetching data: ${err.message}</div>`;
+        throw new Error("Invalid JSON received: " + text.substring(0, 100));
       }
+
+      // Step 3: Display results
+      if (data.error) {
+        weatherStats.innerHTML = `<div class="error">⚠️ ${data.error}</div>`;
+      } else {
+        cityName.innerHTML = `${city} ⛅`;
+        weatherStats.innerHTML = `
+          <div class="weather-item">
+            🌡️ <span>${data.predicted_temperature} °C</span>
+          </div>
+          <div class="weather-item">
+            💧 <span>${data.predicted_relative_humidity}%</span>
+          </div>
+          <div class="weather-item">
+            🌬️ <span>${data.predicted_wind_speed} m/s</span>
+          </div>
+          <div class="weather-item">
+            🌤️ <span>${weatherData.weather[0]?.description || 'Partly Cloudy'}</span>
+          </div>
+        `;
+      }
+    } catch (err) {
+      weatherStats.innerHTML = `<div class="error">⚠️ Error fetching data: ${err.message}</div>`;
     }
-  </script>
+  }
+</script>
+
 </body>
 </html>
