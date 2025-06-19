@@ -93,27 +93,40 @@ def predict5():
             input_df = pd.DataFrame([current_input])[feature_columns]
             y_pred = pipeline.predict(input_df)[0]
 
+            # --- Safeguard: clamp predictions ---
+            temp = max(min(y_pred[0], 55), -30)  # realistic temp range
+            rh   = max(min(y_pred[1], 100), 0)   # humidity always between 0-100
+            wind = max(min(y_pred[2], 100), 0)   # wind speed in km/h (or m/s)
+
+            # Optional: add tiny noise to prevent identical flat predictions
+            # import random
+            # temp += random.uniform(-0.3, 0.3)
+            # rh   += random.uniform(-0.5, 0.5)
+            # wind += random.uniform(-0.2, 0.2)
+
             predictions.append({
                 "hour_ahead": step + 1,
-                "predicted_temperature": round(y_pred[0], 2),
-                "predicted_relative_humidity": round(y_pred[1], 2),
-                "predicted_wind_speed": round(y_pred[2], 2)
+                "predicted_temperature": round(temp, 2),
+                "predicted_relative_humidity": round(rh, 2),
+                "predicted_wind_speed": round(wind, 2)
             })
 
-            # Update for next step (autoregressive)
-            current_input["temperature"] = y_pred[0]
-            current_input["relative_humidity"] = y_pred[1]
-            current_input["wind_speed"] = y_pred[2]
-            current_input["dew_point"] = current_input["temperature"] - ((100 - current_input["relative_humidity"]) / 5)
-            current_input["apparent_temperature"] = current_input["temperature"]
+            # Update current_input for next prediction (autoregressive logic)
+            current_input["temperature"] = temp
+            current_input["relative_humidity"] = rh
+            current_input["wind_speed"] = wind
+            current_input["dew_point"] = temp - ((100 - rh) / 5)
+            current_input["apparent_temperature"] = temp
 
             current_input["hour"] = (current_input["hour"] + 1) % 24
             if current_input["hour"] == 0:
                 current_input["month"] = (current_input["month"] % 12) + 1
 
         return jsonify(predictions)
+
     except Exception as e:
         return jsonify({"error": str(e)})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
