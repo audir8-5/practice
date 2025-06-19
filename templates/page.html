@@ -519,429 +519,364 @@
     </div>
     
     <div class="footer">
-      <p><i class="fas fa-sync-alt"></i> Big-Data-project • Weather_Vision </p>
+      <p><i class="fas fa-sync-alt"></i> Big-Dataproject • Weather_Vision </p>
     </div>
   </div>
 
   <script>
-    // Chart references
-    let tempChart = null;
-    let humidityChart = null;
-    let windChart = null;
-    
-    // Set initial state
-    let currentForecastType = null;
-    
-    // Dynamic greeting with typing effect
-    function setGreeting() {
-      const hour = new Date().getHours();
-      let greeting = "Hey User.....Good morning! ☀️";
-      
-      if (hour >= 12 && hour < 17) {
-        greeting = "Hey User.....Good afternoon! 🌤️";
-      } else if (hour >= 17 || hour < 6) {
-        greeting = "Hey User.....Good evening! 🌙";
-      }
-      
-      const greetingElement = document.getElementById('greetingText');
-      greetingElement.textContent = greeting;
-      greetingElement.style.animation = 'none';
-      
-      // Trigger reflow to restart animation
-      void greetingElement.offsetWidth;
-      
-      greetingElement.style.animation = 'typing 3.5s steps(30, end), blink-caret 0.75s step-end infinite';
-    }
+// Chart references
+let tempChart = null;
+let humidityChart = null;
+let windChart = null;
 
-    // Format time to 12-hour format
-    function formatTime(date) {
-      let hours = date.getHours();
-      let minutes = date.getMinutes();
-      let ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12;
-      minutes = minutes < 10 ? '0'+minutes : minutes;
-      return hours + ':' + minutes + ' ' + ampm;
-    }
+let currentForecastType = null;
 
-    // Format time for forecast labels
-    function formatHour(date) {
-      let hours = date.getHours();
-      let ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12;
-      return hours + ' ' + ampm;
-    }
+// Typing greeting
+function setGreeting() {
+  const hour = new Date().getHours();
+  let greeting = "Hey User.....Good morning! ☀️";
 
-    // Generate demo data for 5-hour forecast
-    function generateFiveHourData(baseData) {
-      const data = [];
-      const now = new Date();
-      
-      for (let i = 0; i < 5; i++) {
-        const hourData = {
-          time: new Date(now.getTime() + (i * 60 * 60 * 1000)),
-          temp: baseData.temp + (Math.random() * 4 - 2),
-          humidity: baseData.humidity + (Math.random() * 10 - 5),
-          wind: baseData.wind + (Math.random() * 3 - 1.5),
-          condition: baseData.condition
-        };
-        
-        // Ensure values are within reasonable ranges
-        hourData.temp = Math.round(Math.max(10, Math.min(40, hourData.temp)));
-        hourData.humidity = Math.round(Math.max(30, Math.min(95, hourData.humidity)));
-        hourData.wind = Math.round(Math.max(2, Math.min(30, hourData.wind)));
-        
-        data.push(hourData);
-      }
-      
-      return data;
-    }
+  if (hour >= 12 && hour < 17) {
+    greeting = "Hey User.....Good afternoon! 🌤️";
+  } else if (hour >= 17 || hour < 6) {
+    greeting = "Hey User.....Good evening! 🌙";
+  }
 
-    // Destroy existing charts
-    function destroyCharts() {
-      if (tempChart) {
-        tempChart.destroy();
-        tempChart = null;
-      }
-      if (humidityChart) {
-        humidityChart.destroy();
-        humidityChart = null;
-      }
-      if (windChart) {
-        windChart.destroy();
-        windChart = null;
-      }
-    }
+  const greetingElement = document.getElementById('greetingText');
+  greetingElement.textContent = greeting;
+  greetingElement.style.animation = 'none';
+  void greetingElement.offsetWidth; // restart animation
+  greetingElement.style.animation = 'typing 3.5s steps(30, end), blink-caret 0.75s step-end infinite';
+}
 
-    // Create charts for 5-hour forecast
-    function createCharts(forecastData) {
-      destroyCharts();
-      
-      const times = forecastData.map(data => formatHour(data.time));
-      const temps = forecastData.map(data => data.temp);
-      const humidities = forecastData.map(data => data.humidity);
-      const winds = forecastData.map(data => data.wind);
-      
-      // Temperature Chart
-      const tempCtx = document.getElementById('tempChart').getContext('2d');
-      tempChart = new Chart(tempCtx, {
-        type: 'line',
-        data: {
-          labels: times,
-          datasets: [{
-            label: 'Temperature (°C)',
-            data: temps,
-            borderColor: '#f72585',
-            backgroundColor: 'rgba(247, 37, 133, 0.1)',
-            borderWidth: 3,
-            tension: 0.3,
-            fill: true
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: false,
-              grid: {
-                color: document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-              }
-            },
-            x: {
-              grid: {
-                color: document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              labels: {
-                color: document.body.classList.contains('dark-mode') ? '#fff' : '#000'
-              }
-            }
-          }
+// 12-hour format
+function formatTime(date) {
+  let hours = date.getHours();
+  let minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  minutes = minutes < 10 ? '0' + minutes : minutes;
+  return `${hours}:${minutes} ${ampm}`;
+}
+
+function formatHour(date) {
+  let hours = date.getHours();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${hours} ${ampm}`;
+}
+
+// Destroy charts
+function destroyCharts() {
+  [tempChart, humidityChart, windChart].forEach(chart => {
+    if (chart) chart.destroy();
+  });
+  tempChart = humidityChart = windChart = null;
+}
+
+// Create charts
+function createCharts(data) {
+  if (!data || data.length === 0) return;
+
+  destroyCharts();
+
+  const times = data.map(d => formatHour(new Date(d.time)));
+  const temps = data.map(d => d.temp);
+  const humidities = data.map(d => d.humidity);
+  const winds = data.map(d => d.wind);
+
+  const baseOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        grid: {
+          color: document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
         }
-      });
-      
-      // Humidity Chart
-      const humidityCtx = document.getElementById('humidityChart').getContext('2d');
-      humidityChart = new Chart(humidityCtx, {
-        type: 'bar',
-        data: {
-          labels: times,
-          datasets: [{
-            label: 'Humidity (%)',
-            data: humidities,
-            backgroundColor: 'rgba(76, 201, 240, 0.7)',
-            borderColor: '#4cc9f0',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100,
-              grid: {
-                color: document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-              }
-            },
-            x: {
-              grid: {
-                color: document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              labels: {
-                color: document.body.classList.contains('dark-mode') ? '#fff' : '#000'
-              }
-            }
-          }
+      },
+      x: {
+        grid: {
+          color: document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
         }
-      });
-      
-      // Wind Chart
-      const windCtx = document.getElementById('windChart').getContext('2d');
-      windChart = new Chart(windCtx, {
-        type: 'line',
-        data: {
-          labels: times,
-          datasets: [{
-            label: 'Wind Speed (km/h)',
-            data: winds,
-            borderColor: '#4361ee',
-            backgroundColor: 'rgba(67, 97, 238, 0.1)',
-            borderWidth: 3,
-            tension: 0.3,
-            fill: true
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              grid: {
-                color: document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-              }
-            },
-            x: {
-              grid: {
-                color: document.body.classList.contains('dark-mode') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              labels: {
-                color: document.body.classList.contains('dark-mode') ? '#fff' : '#000'
-              }
-            }
-          }
-        }
-      });
-    }
-
-    // Toggle dark mode
-    function toggleDarkMode() {
-      const isDarkMode = document.body.classList.toggle('dark-mode');
-      const icon = document.querySelector('.theme-toggle i');
-      icon.className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
-      
-      // Save to localStorage
-      localStorage.setItem('darkMode', isDarkMode);
-      
-      // Recreate charts if in 5-hour view
-      if (currentForecastType === '5h') {
-        const city = document.getElementById('city').value;
-        const demoData = getDemoData(city);
-        if (demoData) {
-          const forecastData = generateFiveHourData(demoData);
-          createCharts(forecastData);
+      }
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: document.body.classList.contains('dark-mode') ? '#fff' : '#000'
         }
       }
     }
+  };
 
-    // Get demo data for city
-    function getDemoData(city) {
-      const demoData = {
-        'Delhi': { temp: 32, humidity: 45, wind: 8, condition: 'Sunny' },
-        'Mumbai': { temp: 28, humidity: 75, wind: 12, condition: 'Rainy' },
-        'Dehradun': { temp: 22, humidity: 60, wind: 5, condition: 'Cloudy' },
-        'Chennai': { temp: 34, humidity: 70, wind: 10, condition: 'Sunny' },
-        'Pune': { temp: 26, humidity: 65, wind: 6, condition: 'Cloudy' },
-        'Hyderabad': { temp: 30, humidity: 55, wind: 8, condition: 'Sunny' },
-        'Jaipur': { temp: 36, humidity: 40, wind: 7, condition: 'Sunny' },
-        'Kolkata': { temp: 29, humidity: 80, wind: 15, condition: 'Rainy' },
-        'Bengaluru': { temp: 24, humidity: 70, wind: 6, condition: 'Cloudy' },
-        'Ahmedabad': { temp: 38, humidity: 35, wind: 9, condition: 'Sunny' }
-      };
-      
-      return demoData[city] || null;
-    }
+  tempChart = new Chart(document.getElementById('tempChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: times,
+      datasets: [{
+        label: 'Temperature (°C)',
+        data: temps,
+        borderColor: '#f72585',
+        backgroundColor: 'rgba(247, 37, 133, 0.1)',
+        borderWidth: 3,
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: baseOptions
+  });
 
-    // Weather forecast function
-    function showWeather(type) {
-      currentForecastType = type;
-      
-      // Show loading state
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('error').style.display = 'none';
-      document.getElementById('weatherDisplay').style.display = 'none';
-      
-      // Get selected city
-      const city = document.getElementById('city').value;
-      
-      // Simulate API call delay
-      setTimeout(() => {
-        // Hide loading
-        document.getElementById('loading').style.display = 'none';
-        
-        // Get demo data
-        const data = getDemoData(city);
-        
-        if (data) {
-          const now = new Date();
-          
-          // Set weather icon and theme
-          setWeatherTheme(data.condition);
-          
-          // Update display
-          document.getElementById('displayCity').textContent = city;
-          document.getElementById('temperature').textContent = data.temp + '°C';
-          document.getElementById('humidity').textContent = data.humidity + '%';
-          document.getElementById('windSpeed').textContent = data.wind + ' km/h';
-          document.getElementById('conditions').textContent = data.condition;
-          
-          // Handle different forecast types
-          if (type === '1h') {
-            // Calculate next hour time
-            const nextHour = new Date(now.getTime() + 60 * 60 * 1000);
-            const roundedTime = new Date(nextHour);
-            roundedTime.setMinutes(0, 0, 0);
-            
-            // Update forecast time
-            document.getElementById('forecastTime').textContent = 
-              `🌤️ Forecast for ${formatTime(roundedTime)}`;
-            
-            // Show 1-hour display, hide 5-hour
-            document.getElementById('oneHourDisplay').style.display = 'block';
-            document.getElementById('fiveHourDisplay').style.display = 'none';
-          } 
-          else if (type === '5h') {
-            // Generate 5-hour forecast data
-            const forecastData = generateFiveHourData(data);
-            
-            // Update forecast time
-            const startTime = formatTime(now);
-            const endTime = formatTime(new Date(now.getTime() + 5 * 60 * 60 * 1000));
-            document.getElementById('forecastTime').textContent = 
-              `⏱️ Forecast from ${startTime} to ${endTime}`;
-            
-            // Hide 1-hour display, show 5-hour
-            document.getElementById('oneHourDisplay').style.display = 'none';
-            document.getElementById('fiveHourDisplay').style.display = 'block';
-            
-            // Create charts
-            createCharts(forecastData);
-          }
-          
-          // Show weather display
-          document.getElementById('weatherDisplay').style.display = 'block';
-        } else {
-          // Show error
-          document.getElementById('error').style.display = 'block';
-        }
-      }, 800);
-    }
-    
-    function setWeatherTheme(condition) {
-      // Remove all weather classes
-      document.body.className = 'dark-mode'; // Start with dark mode if enabled
-      if (localStorage.getItem('darkMode') !== 'true') {
-        document.body.classList.remove('dark-mode');
-      }
-      
-      // Add appropriate weather class
-      const cond = condition.toLowerCase();
-      const hour = new Date().getHours();
-      const isNight = hour < 6 || hour > 18;
-      
-      if (isNight && (cond.includes('clear') || !cond.includes('cloud'))) {
-        document.body.classList.add('night');
-      } else if (cond.includes('rain')) {
-        document.body.classList.add('rainy');
-      } else if (cond.includes('cloud')) {
-        document.body.classList.add('cloudy');
-      } else if (cond.includes('sun') || cond.includes('clear')) {
-        document.body.classList.add('sunny');
-      } else if (cond.includes('snow')) {
-        document.body.classList.add('snowy');
-      } else if (cond.includes('thunder') || cond.includes('storm')) {
-        document.body.classList.add('thunderstorm');
-      } else if (cond.includes('fog') || cond.includes('mist')) {
-        document.body.classList.add('foggy');
-      } else {
-        document.body.classList.add('cloudy');
-      }
-      
-      // Set weather icon
-      const iconMap = {
-        'sunny': '☀️',
-        'rain': '🌧️',
-        'cloud': '☁️',
-        'snow': '❄️',
-        'thunder': '⛈️',
-        'storm': '⛈️',
-        'fog': '🌫️',
-        'mist': '🌫️'
-      };
-      
-      let icon = '⛅';
-      for (const [key, value] of Object.entries(iconMap)) {
-        if (cond.includes(key)) {
-          icon = value;
-          break;
+  humidityChart = new Chart(document.getElementById('humidityChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: times,
+      datasets: [{
+        label: 'Humidity (%)',
+        data: humidities,
+        backgroundColor: 'rgba(76, 201, 240, 0.7)',
+        borderColor: '#4cc9f0',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      ...baseOptions,
+      scales: {
+        ...baseOptions.scales,
+        y: {
+          ...baseOptions.scales.y,
+          beginAtZero: true,
+          max: 100
         }
       }
-      
-      if (isNight && (cond.includes('clear') || !cond.includes('cloud'))) {
-        icon = '🌙';
-      }
-      
-      document.getElementById('weatherIcon').textContent = icon;
     }
-    
-    // Initialize the app
-    window.onload = function() {
-      // Set Dehradun as default in the dropdown
-      document.getElementById('city').value = 'Dehradun';
-      
-      // Set the dynamic greeting
-      setGreeting();
-      
-      // Set up theme toggle
-      const themeToggle = document.getElementById('themeToggle');
-      themeToggle.addEventListener('click', toggleDarkMode);
-      
-      // Check for saved dark mode preference
-      if (localStorage.getItem('darkMode') === 'true') {
-        document.body.classList.add('dark-mode');
-        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-      } else {
-        themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-      }
-      
-      // Set default weather theme
-      document.body.classList.add('cloudy');
+  });
+
+  windChart = new Chart(document.getElementById('windChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: times,
+      datasets: [{
+        label: 'Wind Speed (km/h)',
+        data: winds,
+        borderColor: '#4361ee',
+        backgroundColor: 'rgba(67, 97, 238, 0.1)',
+        borderWidth: 3,
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: baseOptions
+  });
+}
+
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark-mode');
+  document.querySelector('.theme-toggle i').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+  localStorage.setItem('darkMode', isDark);
+}
+
+function getConditionFromCode(code) {
+  if (code >= 200 && code < 300) return 'Thunderstorm';
+  if (code >= 300 && code < 400) return 'Drizzle';
+  if (code >= 500 && code < 600) return 'Rainy';
+  if (code >= 600 && code < 700) return 'Snowy';
+  if (code >= 700 && code < 800) return 'Foggy';
+  if (code === 800) return 'Sunny';
+  if (code > 800) return 'Cloudy';
+  return 'Clear';
+}
+
+async function fetchWeatherData(city) {
+  try {
+    const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=7d78f12aba07e1ab5bd1fe710eb0f55d&units=metric`);
+    if (!res.ok) throw new Error('City not found');
+    const data = await res.json();
+
+    return {
+      uiData: {
+        temp: data.main.temp,
+        humidity: data.main.humidity,
+        wind: data.wind.speed,
+        condition: getConditionFromCode(data.weather[0].id),
+        code: data.weather[0].id
+      },
+      rawData: data
     };
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
+async function getPrediction(city, type, weatherData) {
+  const endpoint = type === '5h'
+    ? "https://weather-vision.onrender.com/predict5"
+    : "https://weather-vision.onrender.com/predict";
+  console.log(`📡 Sending ${type} prediction request to ${endpoint}`, weatherData);
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(weatherData)  // send raw OpenWeather response directly
+
+    });
+
+    console.log("🏷️ Response status:", res.status);
+    const text = await res.text();
+    console.log("📥 Raw response text:", text);
+
+    if (!res.ok) throw new Error(`Backend returned ${res.status}`);
+
+    const data = JSON.parse(text);
+    console.log("✅ Parsed JSON:", data);
+
+    if (type === "5h") {
+      if (!Array.isArray(data)) throw new Error("Expected array for 5h response");
+      const now = new Date();
+      return data.map((e, i) => ({
+        time:         new Date(now.getTime() + i * 3600000),
+        temp:         e.predicted_temperature,
+        humidity:     e.predicted_relative_humidity,
+        wind:         e.predicted_wind_speed,
+        condition:    "Cloudy"
+      }));
+    } else {
+      if (data.error) throw new Error(data.error);
+      return {
+        temp:     data.predicted_temperature,
+        humidity: data.predicted_relative_humidity,
+        wind:     data.predicted_wind_speed,
+        condition: weatherData.condition
+      };
+    }
+  } catch (err) {
+    console.error("🚨 Prediction error caught:", err);
+    throw err;
+  }
+}
+
+
+async function showWeather(type) {
+  const city = document.getElementById('city').value;
+  const loading = document.getElementById('loading');
+  const error = document.getElementById('error');
+  const weatherDisplay = document.getElementById('weatherDisplay');
+  const oneHourDisplay = document.getElementById('oneHourDisplay');
+  const fiveHourDisplay = document.getElementById('fiveHourDisplay');
+
+  loading.style.display = 'block';
+  error.style.display = 'none';
+  weatherDisplay.style.display = 'none';
+  oneHourDisplay.style.display = 'none';
+  fiveHourDisplay.style.display = 'none';
+
+  try {
+    const weather = await fetchWeatherData(city);
+if (!weather) throw new Error("Failed to fetch weather data");
+
+const prediction = await getPrediction(city, type, weather.rawData);
+const uiData = weather.uiData;
+
+    loading.style.display = 'none';
+
+    document.getElementById('displayCity').textContent = weather.rawData.name || city;
+    document.getElementById('forecastTime').textContent = `Forecast at ${formatTime(new Date())}`;
+
+    if (type === '1h') {
+      document.getElementById('temperature').textContent = `${prediction.temp.toFixed(1)}°C`;
+      document.getElementById('humidity').textContent = `${prediction.humidity}%`;
+      document.getElementById('windSpeed').textContent = `${prediction.wind.toFixed(1)} km/h`;
+      document.getElementById('conditions').textContent = getConditionFromCode(weather.rawData.weather[0].id);
+      oneHourDisplay.style.display = 'block';
+    } else {
+    const now = new Date();
+    const later = new Date(now.getTime() + 5 * 3600000);
+    document.getElementById('forecastTime').textContent = `Forecast from ${formatTime(now)} to ${formatTime(later)}`;
+
+      createCharts(prediction);
+      fiveHourDisplay.style.display = 'block';
+    }
+
+    setWeatherTheme(getConditionFromCode(weather.rawData.weather[0].id));
+    weatherDisplay.style.display = 'block';
+    currentForecastType = type;
+  } catch (err) {
+    console.error(err);
+    loading.style.display = 'none';
+    error.style.display = 'block';
+    error.textContent = `⚠️ ${err.message}`;
+  }
+}
+
+
+function setWeatherTheme(condition) {
+  document.body.className = '';
+  const cond = condition.toLowerCase();
+  const hour = new Date().getHours();
+  const isNight = hour < 6 || hour > 18;
+
+  if (isNight && (cond.includes('clear') || !cond.includes('cloud'))) {
+    document.body.classList.add('night');
+  } else if (cond.includes('rain')) {
+    document.body.classList.add('rainy');
+  } else if (cond.includes('cloud')) {
+    document.body.classList.add('cloudy');
+  } else if (cond.includes('sun') || cond.includes('clear')) {
+    document.body.classList.add('sunny');
+  } else if (cond.includes('snow')) {
+    document.body.classList.add('snowy');
+  } else if (cond.includes('thunder') || cond.includes('storm')) {
+    document.body.classList.add('thunderstorm');
+  } else if (cond.includes('fog') || cond.includes('mist')) {
+    document.body.classList.add('foggy');
+  } else {
+    document.body.classList.add('cloudy');
+  }
+
+  const iconMap = {
+    sunny: '☀️', rain: '🌧️', cloud: '☁️',
+    snow: '❄️', thunder: '⛈️', storm: '⛈️',
+    fog: '🌫️', mist: '🌫️'
+  };
+
+  let icon = '⛅';
+  for (const key in iconMap) {
+    if (cond.includes(key)) {
+      icon = iconMap[key];
+      break;
+    }
+  }
+
+  if (isNight && (cond.includes('clear') || !cond.includes('cloud'))) {
+    icon = '🌙';
+  }
+
+  document.getElementById('weatherIcon').textContent = icon;
+
+  if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark-mode');
+  }
+}
+
+
+// Init app
+window.onload = function() {
+  document.getElementById('city').value = 'Dehradun';
+  setGreeting();
+  setWeatherTheme('Cloudy');
+  
+  const themeToggle = document.getElementById('themeToggle');
+  themeToggle.addEventListener('click', toggleDarkMode);
+  
+  if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark-mode');
+    themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+  } else {
+    themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+  }
+};
+
   </script>
 </body>
 </html>
